@@ -1,0 +1,3 @@
+- all file can be read directly to RAM (no big files of >1Gb)
+- global dictionary will fit the RAM nicely (no more than one million unique words)
+- incorrect or notexisting paths are ignored (while at least one valid provided)
