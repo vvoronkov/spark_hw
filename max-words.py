@@ -41,25 +41,32 @@ def process_file(sPath):
             
         
 def main():
+    files=[]
     parser = argparse.ArgumentParser(
             description='Display N most frequent words in provided files')
     parser.add_argument('count', type=int, metavar='N', help='number of most frequent words')
     parser.add_argument('files', type=str, nargs='+', help='list of files/dirs to scan')
 
-    args = parser.parse_args()
-    #args = parser.parse_args(["5", "ENG\\", "test\\1s.txt"])
+    #TODO: args = parser.parse_args()
+    args = parser.parse_args(["10", "ENG\\", "test\\1.txt", "abc", "2", ":#@!"])
     
-    validPathExists=0
-    for sPath in args.files:
-        #TODO: have to assure at least one valid path
-        if os.path.exists(sPath):
-            traverse_files(sPath)
-            validPathExists=1
+    for p in args.files:
+        if os.path.exists(p):
+            if os.path.isfile(p):
+                files.append(p)
+            else:
+                for root, directories, filenames in os.walk(p):
+                    for filename in filenames:
+                        files.append(os.path.join(root,filename))
     
-    if validPathExists:
+    if len(files):
+        print (files)
+        for f in files:
+            process_file(f)
+        
         for word in sorted(dic_global, key=dic_global.get, reverse=True)[:args.count]:
-            print ("word '%s' occured '%d' times" % (word, dic_global[word]))    
-            #print (word, dic_global[word])
+            #TODO: print ("word '%s' occured '%d' times" % (word, dic_global[word]))    
+            print (word, dic_global[word])
     else:
         print("no single valid path exists, please provide at least one")
         parser.print_help()
