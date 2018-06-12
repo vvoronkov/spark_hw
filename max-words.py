@@ -11,7 +11,7 @@ import threading
 import cProfile
 
 #TODO: how to determine optimal number of workers?
-workers_num=2
+workers_num=4
 workers_data=[{} for _ in range(workers_num)]
 
 whitechars = '\?|\.|\!|\/|\\|\;|\:|`|_|,'
@@ -79,7 +79,8 @@ def main():
         bucket_size=1+len(files)//workers_num
         threads = []
         for i in range(workers_num):
-            t = threading.Thread(target=process_files, args=(i,files[bucket_size*i:bucket_size*(i+1)]))
+            worker_input=files[bucket_size*i:bucket_size*(i+1)]
+            t = threading.Thread(target=process_files, args=(i,worker_input))
             threads.append(t)
             t.start()
         
