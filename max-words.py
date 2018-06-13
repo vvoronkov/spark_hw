@@ -8,10 +8,9 @@ import os
 import argparse
 import re
 import threading
-import cProfile
+#import cProfile
 
-#TODO: how to determine optimal number of workers?
-workers_num=4
+workers_num=2
 workers_data=[{} for _ in range(workers_num)]
 
 whitechars = '\?|\.|\!|\/|\\|\;|\:|`|_|,'
@@ -60,8 +59,8 @@ def compute_data(nwords):
             dic_combined[key]=dic_combined.get(key, 0)+workers_data[i][key]
     
     for word in sorted(dic_combined, key=dic_combined.get, reverse=True)[:nwords]:
-        #TODO: print ("word '%s' occured '%d' times" % (word, dic_combined[word]))    
-        print (word, dic_combined[word])
+        print ("word '%s' occured '%d' times" % (word, dic_combined[word]))    
+        #print (word, dic_combined[word])
 
         
 def main():
@@ -70,8 +69,8 @@ def main():
     parser.add_argument('count', type=int, metavar='N', help='number of most frequent words')
     parser.add_argument('files', type=str, nargs='+', help='list of files/dirs to scan')
 
-    #TODO: args = parser.parse_args()
-    args = parser.parse_args(["10", "ENG\\", "test\\1s.txt", "abc", "2", ":#@!"])
+    args = parser.parse_args()
+    #args = parser.parse_args(["10", "ENG\\", "test\\1s.txt", "..\\bigdata", "2", ":#@!"])
     
     files=build_fileslist(args.files)
     
@@ -85,16 +84,13 @@ def main():
             t.start()
         
         for t in threads:
-           t.join()
+            t.join()
         
         compute_data(args.count)
     else:
         print("no single valid path exists, please provide at least one")
         parser.print_help()
 
-#TODO: looks like multithreading doesn't help much since python run it on single CPU core!!!
-#TODO: also cProfile shows most of time spent in locks...
-# 50    3.776    0.076    3.776    0.076 {method 'acquire' of '_thread.lock' objects}
-cProfile.run('main()')
-#if __name__ == '__main__':
-#    main()
+#cProfile.run('main()')
+if __name__ == '__main__':
+    main()
