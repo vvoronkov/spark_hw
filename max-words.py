@@ -7,20 +7,19 @@ Created on June 10 20:54:27 2018
 import os
 import argparse
 import re
-import threading
-#import cProfile
+import time
+import multiprocessing
+from multiprocessing import Pool
 
-workers_num=2
-workers_data=[{} for _ in range(workers_num)]
 
 whitechars = '\?|\.|\!|\/|\\|\;|\:|`|_|,'
 stopwords={"did", "out", "got", "her", "were", "the", "and", "was", "that", "his", "you", "with", "they", "for", "had", "this", "but", "there", "then", "him", "not", "are", "them", "into", "she"}
 
 
-def process_files(worker_id, filelist):
+def process_files(filelist):
     """
-        read content of file into string and clean white chars, 
-        then split, count words locally and update global counters 
+        read content of each file from list into string,
+        clean white chars, then split and count words 
     """
     dic_local={}
     for file in filelist:
@@ -30,9 +29,9 @@ def process_files(worker_id, filelist):
         for word in text_string.split():
             if len(word)>2 and word not in stopwords:
                 dic_local[word]=dic_local.get(word, 0)+1
+    return dic_local       
     
-    workers_data[worker_id]=dic_local       
-    
+
 def build_fileslist(pathlist):
     """
         build flat list of files
@@ -48,49 +47,55 @@ def build_fileslist(pathlist):
                         files.append(os.path.join(root,filename))
     return files
 
-def compute_data(nwords):
+
+def compute_data(workers_data, nwords):
     """
         combine data produced by workers and sort
     """
     dic_combined=workers_data[0]
     
-    for i in range(1,workers_num):
+    for i in range(1,len(workers_data)):
         for key in workers_data[i].keys():
             dic_combined[key]=dic_combined.get(key, 0)+workers_data[i][key]
     
     for word in sorted(dic_combined, key=dic_combined.get, reverse=True)[:nwords]:
         print ("word '%s' occured '%d' times" % (word, dic_combined[word]))    
-        #print (word, dic_combined[word])
 
-        
+
+def generate_workers_input(files, workers_num):
+    worker_input=[]
+    bucket_size=len(files)//workers_num
+    if bucket_size*workers_num < len(files):
+        bucket_size= bucket_size+1
+    for i in range(workers_num):
+        worker_input.append(files[bucket_size*i:bucket_size*(i+1)])
+    return worker_input
+
+            
 def main():
     parser = argparse.ArgumentParser(
             description='Display N most frequent words in provided files')
     parser.add_argument('count', type=int, metavar='N', help='number of most frequent words')
     parser.add_argument('files', type=str, nargs='+', help='list of files/dirs to scan')
-
     args = parser.parse_args()
-    #args = parser.parse_args(["10", "ENG\\", "test\\1s.txt", "..\\bigdata", "2", ":#@!"])
     
     files=build_fileslist(args.files)
     
     if len(files):
-        bucket_size=1+len(files)//workers_num
-        threads = []
-        for i in range(workers_num):
-            worker_input=files[bucket_size*i:bucket_size*(i+1)]
-            t = threading.Thread(target=process_files, args=(i,worker_input))
-            threads.append(t)
-            t.start()
+        startTime = time.time()
+        workers_num=multiprocessing.cpu_count()
+        worker_input=generate_workers_input(files, workers_num)
+            
+        pool = Pool(processes=workers_num)
+        workers_data=pool.map(process_files, worker_input)
         
-        for t in threads:
-            t.join()
+        compute_data(workers_data, args.count)
         
-        compute_data(args.count)
+        endTime = time.time()
+        print ("The job took " + str(endTime - startTime) + " seconds to complete")
     else:
         print("no single valid path exists, please provide at least one")
         parser.print_help()
 
-#cProfile.run('main()')
 if __name__ == '__main__':
     main()
